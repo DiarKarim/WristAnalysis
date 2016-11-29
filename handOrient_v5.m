@@ -8,7 +8,7 @@
 % Output: Angle between the y-axis of marker 2 and the position of marker 1
 %
 % Author: Diar Karim
-% Date: 20/11/2016
+% Date: 25/11/2016
 % Contact: diarkarim@gmail.com
 % Credits: Ermano Arruda
 % 

@@ -47,7 +47,7 @@ Liberty_3D_V3;
 if testType == 2 
     tiltang = sqrt(D(:,12).^2); % This is only for pronation
 else
-    tiltang = handOrient_v4(D); % This separate script will output the tilt angle from Liberty (tiltang)
+    tiltang = handOrient_v5(D); % This separate script will output the tilt angle from Liberty (tiltang)
 end
 
 % Correct for zero offset of liberty channels

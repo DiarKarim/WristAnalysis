@@ -1,2 +1,2 @@
 # WristAnalysis
-This software analysis wrist movements
+This software analyses wrist movements

@@ -43,7 +43,6 @@ end
 D = snip(D,nan);
 
 % Run prerequisite scripts
-Liberty_3D_V3;
 if testType == 2 
     tiltang = sqrt(D(:,12).^2); % This is only for pronation
 else

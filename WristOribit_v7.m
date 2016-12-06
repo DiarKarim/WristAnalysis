@@ -4,16 +4,18 @@
 %                   1.) load data
 %                   2.) preprocess (clean up data)
 %                   3.) find peaks (what we are interested in)
-%                   4.) compute averages
-%                   5.) plot data
+%                   4.) plot data
+%                   5.) statistical tests
+%                   6.) save data
 %
 %   Author: Diar Karim
-%   Date: 22/11/2016
-%   Version: 1.0
+%   Date: 05/12/2016
+%   Version: 9.0
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function WristOribit_v7()
 
+% Get user input
 handles.edit1 = str2num(input('Please input the participant number: '));
 handles.popupmenu1 = str2num(input('Flex-Ext (1) // Pro-Sup (2) // Uln-Rad (3): '));
 handles.popupmenu2 = str2num(input('Trial number 1-5: '));
@@ -46,7 +48,7 @@ D = snip(D,nan);
 if testType == 2 
     tiltang = sqrt(D(:,12).^2); % This is only for pronation
 else
-    tiltang = handOrient_v5(D); % This separate script will output the tilt angle from Liberty (tiltang)
+    tiltang = handOrient_v6(D); % This separate script will output the tilt angle from Liberty (tiltang)
 end
 
 % Correct for zero offset of liberty channels
@@ -114,37 +116,25 @@ tiltang = downsample(tiltang,samplez);
 %% 3.) Find peaks
 if testType == 1
     LeapAng = pitch;
-    minPeak = 62;
-    minPeak2 = 20; 
+    minPeak = 60;
 elseif testType == 2
     LeapAng = roll;
-    minPeak = 15;
-    minPeak2 = 10;
+    minPeak = 40;
 elseif testType == 3
     LeapAng = yaw;
-    minPeak = 10;
-    minPeak2 = 7;
+    minPeak = 20;
 end
 
+% Updated version 
 % Find first peaks (flextion/ pronation/ ulnar) from leapmotion and liberty
-[lep_f,lep_loc] = findpeaks(LeapAng,'minpeakheight',minPeak,'minpeakdistance',60);
-[lty_f,lty_loc] = findpeaks(tiltang,'minpeakheight',minPeak,'minpeakdistance',60);
-
+[lep_e,lep_f] = peakdet(LeapAng,minPeak);
 % Find second peaks (extension/ supination/ radial) from leapmotion and liberty
-[lep_e,lep_loce] = findpeaks(LeapAng,'minpeakheight',minPeak2,'minpeakdistance',20);
-[lty_e,lty_loce] = findpeaks(tiltang,'minpeakheight',minPeak2,'minpeakdistance',20);
-
-excl_lep = find(lep_e>62); % Exclude flexion
-excl_lty = find(lty_e>62); % Exclude flexion
-lep_e(excl_lep) = [];
-lty_e(excl_lty) = [];
-lep_loce(excl_lep) = [];
-lty_loce(excl_lty) = [];
+[lty_e,lty_f] = peakdet(tiltang,minPeak);
 
 
-
-%% 5.) Plot data
+%% 4.) Plot raw data
 subplot(2,1,1)
+cla
 plot(LeapAng,'b') % Leap
 hold on
 plot(tiltang,'m') % Liberty
@@ -156,44 +146,44 @@ ylabel('Angle/ deg','FontSize',14)
 %legend('Flex','Pro','Uln','FlexL','ProL','UlnL')
 legend('Leapmotion','Liberty')
 
-plot(lep_loc,lep_f,'go');
-plot(lty_loc,lty_f,'gd');
-plot(lep_loce,lep_e,'r*');
-plot(lty_loce,lty_e,'rs');
+x= 200;
+y=-20;
+
+%plot(lep_f(:,1),lep_f(:,2),'gd');
+%text(x,y,'Select leap flexion'); [lep_flxX,lep_flxY] = getpts(1); 
+%plot(lty_f(:,1),lty_f(:,2),'gd');
+%text(x,y,'Select liberty flexion'); [lty_flxX,lty_flxY] = getpts(1); 
+plot(lep_e(:,1),lep_e(:,2),'r*');
+%text(x,y,'Select leap extension'); [lep_extX,lep_extY] = getpts(1); 
+plot(lty_e(:,1),lty_e(:,2),'g*');
+%text(x,y,'Select leap extension'); [lty_extX,lty_extY] = getpts(1); 
 
 % Store peak angles in variables for saving
-leapPeak_dir1 = lep_f;
-libtyPeak_dir1 = lty_f;
-leapPeak_dir2 = lep_e;
-libtyPeak_dir2 = lty_e;
+leapPeak_dir1 = lep_e(1:2:end,:);
+libtyPeak_dir1 = lty_e(1:2:end,:);
+leapPeak_dir2 = lep_e(2:2:end,:);
+libtyPeak_dir2 = lty_e(2:2:end,:);
 
-% Correct liberty below zero offset
-%plot(-tiltang,'k')
-%hold on
-[lib_offs,lib_loc]= findpeaks(-tiltang,'minpeakheight',15,'minpeakdistance',60);
-%plot(lib_loc,lib_offs,'rx')
-try
-    lty_e = lty_e+lib_offs;
-catch
-end
-
-%% 4.)Compute averages, standard errors etc. and plot as bar charts
+% 5.2)Compute averages, standard errors etc. and plot as bar charts
 % Average
-m_lep_f = nanmean(lep_f);
-m_lty_f = nanmean(lty_f);
-m_lep_e = nanmean(lep_e);
-m_lty_e = nanmean(lty_e);
+m_lep_f = nanmean(leapPeak_dir1(:,2));
+m_lty_f = nanmean(libtyPeak_dir1(:,2));
+m_lep_e = nanmean(leapPeak_dir2(:,2));
+m_lty_e = nanmean(libtyPeak_dir2(:,2));
 % Standard error
-ste_lep_f = std(lep_f)/sqrt(length(lep_f));
-ste_lty_f = std(lty_f)/sqrt(length(lty_f));
-ste_lep_e = std(lep_e)/sqrt(length(lep_e));
-ste_lty_e = std(lty_e)/sqrt(length(lty_e));
+ste_lep_f = std(leapPeak_dir1(:,2))/sqrt(length(leapPeak_dir1(:,2)));
+ste_lty_f = std(libtyPeak_dir1(:,2))/sqrt(length(libtyPeak_dir1(:,2)));
+ste_lep_e = std(leapPeak_dir2(:,2))/sqrt(length(leapPeak_dir2(:,2)));
+ste_lty_e = std(libtyPeak_dir2(:,2))/sqrt(length(libtyPeak_dir2(:,2)));
 
 subplot(2,1,2)
-barwitherr([ste_lep_f,ste_lty_f],[-m_lep_f, -m_lty_f],'g')
+cla
 hold on
-barwitherr([ste_lep_e,ste_lty_e],[m_lep_e, m_lty_e],'r')
-legend('Flexion','Extension')
+bar1 = bar([-m_lep_f, -m_lty_f],'g');
+errorbar([1 2],[-m_lep_f, -m_lty_f],[ste_lep_f,ste_lty_f],'.')
+bar2 = bar([m_lep_e, m_lty_e],'r');
+errorbar([1 2],[m_lep_e, m_lty_e],[ste_lep_e,ste_lty_e],'.')
+legend('Direction 1',' ','Direction 2')
 
 title('Average Range of Wrist Motion','FontSize',16)
 xlabel('Device','FontSize',14)
@@ -201,10 +191,12 @@ set(gca,'XTick',1:2,'XTickLabel',{'Leapmotion','Liberty'})
 ylabel('Angle/ deg','FontSize',14)
 xlim([0.5 2.5])
 
-%% Statistical tests
-[hf,pf] = ttest2(lep_f,lty_f);
-[he,pe] = ttest2(lep_e,lty_e);
+%% 5.) Statistical tests
+[hf,pf] = ttest2(leapPeak_dir1(:,2),libtyPeak_dir1(:,2));
+[he,pe] = ttest2(leapPeak_dir2(:,2),libtyPeak_dir2(:,2));
 
+
+%% 6.) Save data to file 
 if testType == 1
     conditionz = 'Flex_Ext';
 elseif testType ==2 
@@ -213,7 +205,4 @@ elseif testType == 3
     conditionz = 'Uln_Rad';
 end
 
-save(sprintf('%s/Results_Participant_%02d_%s_Trial_%02d',pathDirectory,ParticipantNumber,conditionz,trialNum),'LeapAng','tiltang','leapPeak_dir1','leapPeak_dir2','libtyPeak_dir1','libtyPeak_dir2')
-
-
-
+save(sprintf('%s/Results_Participant_%02d_%s_Trial_%02d',pathDirectory,ParticipantNumber,conditionz,trialNum),'LeapAng','tiltang','leapPeak_dir1','libtyPeak_dir1','leapPeak_dir2','libtyPeak_dir2','hf','pf','he','pe')
